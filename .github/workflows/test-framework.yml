@@ -1,0 +1,370 @@
+name: Test CraftMini Framework
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }} PHP ${{ matrix.php }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        php: ['7.1', '8.4']
+        exclude:
+          # Exclude PHP 7.1 on macOS as it's not available
+          - os: macos-latest
+            php: '7.1'
+          # Exclude PHP 7.1 on Windows as it's not available
+          - os: windows-latest
+            php: '7.1'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: json, mysqli, pdo, pdo_mysql, pdo_sqlite, sqlite3
+        coverage: none
+        tools: composer:v2
+
+    - name: Try PHP 8.5 beta if 8.4 not available
+      if: matrix.php == '8.4' && failure()
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.5'
+        extensions: json, mysqli, pdo, pdo_mysql, pdo_sqlite, sqlite3
+        coverage: none
+        tools: composer:v2
+
+    - name: Get Composer Cache Directory
+      id: composer-cache
+      shell: bash
+      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+    - name: Cache Composer dependencies
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+        restore-keys: ${{ runner.os }}-composer-
+
+    - name: Install dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Install curl if not available
+      shell: bash
+      run: |
+        if ! command -v curl &> /dev/null; then
+          echo "Installing curl..."
+          if command -v apt-get &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y curl
+          elif command -v yum &> /dev/null; then
+            sudo yum install -y curl
+          elif command -v brew &> /dev/null; then
+            brew install curl
+          elif command -v choco &> /dev/null; then
+            choco install curl
+          else
+            echo "Could not install curl automatically"
+          fi
+        else
+          echo "curl is already available"
+        fi
+
+    - name: Create test environment file
+      run: |
+        echo "APP_ENVIRONMENT=testing" > .env
+        echo "APP_DEBUG=true" >> .env
+
+    - name: Create logs directory
+      shell: bash
+      run: |
+        mkdir -p public/logs
+
+    - name: Set up test database
+      run: |
+        # Create SQLite database for testing
+        touch public/test_manga_readers.db
+        # Set permissions for database file
+        chmod 666 public/test_manga_readers.db
+
+    - name: Test framework startup
+      shell: bash
+      run: |
+        # Test that the application can start without errors
+        php -f public/index.php --version 2>/dev/null || echo "Version check not available"
+        
+        # Test basic PHP syntax
+        php -l public/index.php
+        php -l src/Application/App.php
+        php -l app/Controller/HomeController.php
+
+    - name: Test default route with built-in PHP server
+      shell: bash
+      run: |
+        # Start PHP built-in server in background
+        php -S localhost:8000 -t public/ > server.log 2>&1 &
+        SERVER_PID=$!
+        
+        # Wait for server to start and check if it's running
+        sleep 5
+        
+        # Check if server is running
+        if ! kill -0 $SERVER_PID 2>/dev/null; then
+          echo "❌ PHP server failed to start"
+          echo "Server log:"
+          cat server.log
+          exit 1
+        fi
+        
+        # Wait a bit more for server to be ready
+        sleep 2
+        
+        # Test the default route with retry logic
+        MAX_RETRIES=3
+        RETRY_COUNT=0
+        
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          if curl -f -s --connect-timeout 10 --max-time 30 http://localhost:8000/ > response.html 2>/dev/null; then
+            echo "✅ Default route (/) is accessible"
+            break
+          else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "Attempt $RETRY_COUNT failed, retrying..."
+            sleep 2
+          fi
+        done
+        
+        if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+          echo "❌ Default route (/) is not accessible after $MAX_RETRIES attempts"
+          echo "Server log:"
+          cat server.log
+          echo "Curl error details:"
+          curl -v http://localhost:8000/ 2>&1 || true
+          exit 1
+        fi
+        
+        # Check if response contains expected content
+        if grep -q "Xin chào" response.html; then
+          echo "✅ Default route returns expected Vietnamese content"
+        else
+          echo "❌ Default route content mismatch"
+          echo "Response content:"
+          cat response.html
+          exit 1
+        fi
+        
+        # Check if response contains hash test content
+        if grep -q "Mã hash" response.html; then
+          echo "✅ Hash functionality is working"
+        else
+          echo "❌ Hash functionality not working"
+          echo "Response content:"
+          cat response.html
+          exit 1
+        fi
+        
+        # Clean up
+        kill $SERVER_PID 2>/dev/null || true
+
+    - name: Test API hello routes
+      shell: bash
+      run: |
+        # Start PHP built-in server in background
+        php -S localhost:8000 -t public/ > server.log 2>&1 &
+        SERVER_PID=$!
+        
+        # Wait for server to start
+        sleep 5
+        
+        # Check if server is running
+        if ! kill -0 $SERVER_PID 2>/dev/null; then
+          echo "❌ PHP server failed to start for API tests"
+          echo "Server log:"
+          cat server.log
+          exit 1
+        fi
+        
+        # Wait a bit more for server to be ready
+        sleep 2
+        
+        # Test API hello routes
+        echo "Testing API hello routes..."
+        
+        # Test hello API route with different names
+        MAX_RETRIES=3
+        RETRY_COUNT=0
+        
+        # Test with 'test' name
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          if curl -f -s --connect-timeout 10 --max-time 30 "http://localhost:8000/api/hello/test" | grep -q "Hello, test" 2>/dev/null; then
+            echo "✅ API hello route with 'test' is working"
+            break
+          else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "API hello 'test' attempt $RETRY_COUNT failed, retrying..."
+            sleep 2
+          fi
+        done
+        
+        if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+          echo "❌ API hello route with 'test' failed after $MAX_RETRIES attempts"
+          exit 1
+        fi
+        
+        # Test with 'world' name
+        RETRY_COUNT=0
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          if curl -f -s --connect-timeout 10 --max-time 30 "http://localhost:8000/api/hello/world" | grep -q "Hello, world" 2>/dev/null; then
+            echo "✅ API hello route with 'world' is working"
+            break
+          else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "API hello 'world' attempt $RETRY_COUNT failed, retrying..."
+            sleep 2
+          fi
+        done
+        
+        if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+          echo "❌ API hello route with 'world' failed after $MAX_RETRIES attempts"
+          exit 1
+        fi
+        
+        # Test with Vietnamese name
+        RETRY_COUNT=0
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          if curl -f -s --connect-timeout 10 --max-time 30 "http://localhost:8000/api/hello/Vietnam" | grep -q "Hello, Vietnam" 2>/dev/null; then
+            echo "✅ API hello route with 'Vietnam' is working"
+            break
+          else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "API hello 'Vietnam' attempt $RETRY_COUNT failed, retrying..."
+            sleep 2
+          fi
+        done
+        
+        if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+          echo "❌ API hello route with 'Vietnam' failed after $MAX_RETRIES attempts"
+          exit 1
+        fi
+        
+        # Clean up
+        kill $SERVER_PID 2>/dev/null || true
+
+    - name: Test error handling
+      shell: bash
+      run: |
+        # Test that non-existent routes return proper error
+        php -S localhost:8000 -t public/ > server.log 2>&1 &
+        SERVER_PID=$!
+        sleep 5
+        
+        # Check if server is running
+        if ! kill -0 $SERVER_PID 2>/dev/null; then
+          echo "❌ PHP server failed to start for error handling tests"
+          echo "Server log:"
+          cat server.log
+          exit 1
+        fi
+        
+        # Wait a bit more for server to be ready
+        sleep 2
+        
+        # Test 404 handling with retry
+        MAX_RETRIES=3
+        RETRY_COUNT=0
+        
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 --max-time 30 http://localhost:8000/nonexistent 2>/dev/null)
+          if [ "$HTTP_CODE" = "404" ]; then
+            echo "✅ 404 error handling works"
+            break
+          else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "404 test attempt $RETRY_COUNT failed (got $HTTP_CODE), retrying..."
+            sleep 2
+          fi
+        done
+        
+        if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+          echo "❌ 404 error handling failed after $MAX_RETRIES attempts (got $HTTP_CODE)"
+          exit 1
+        fi
+        
+        kill $SERVER_PID 2>/dev/null || true
+
+
+    - name: Test framework components
+      shell: bash
+      run: |
+        set -o pipefail
+        
+        echo "Checking PHP syntax in src/ directory..."
+        ERRORS=$(find src/ -name "*.php" -exec php -l {} \; | grep "Errors parsing" || true)
+        if [ -n "$ERRORS" ]; then
+          echo "❌ Found syntax errors in src/"
+          echo "$ERRORS"
+          exit 1
+        else
+          echo "✅ No syntax errors found in src/"
+        fi
+
+        echo "Checking PHP syntax in app/ directory..."
+        ERRORS=$(find app/ -name "*.php" -exec php -l {} \; | grep "Errors parsing" || true)
+        if [ -n "$ERRORS" ]; then
+          echo "❌ Found syntax errors in app/"
+          echo "$ERRORS"
+          exit 1
+        else
+          echo "✅ No syntax errors found in app/"
+        fi
+
+    - name: Test Composer autoloading
+      shell: bash
+      run: |
+        # Test that Composer autoloading works
+        php -r "
+        require_once 'vendor/autoload.php';
+        
+        // Test that main classes can be loaded
+        if (class_exists('Craft\\Application\\App')) {
+          echo '✅ App class loaded successfully\n';
+        } else {
+          echo '❌ App class not found\n';
+          exit(1);
+        }
+        
+        if (class_exists('App\\Controller\\HomeController')) {
+          echo '✅ HomeController class loaded successfully\n';
+        } else {
+          echo '❌ HomeController class not found\n';
+          exit(1);
+        }
+        
+        if (class_exists('Craft\\Application\\Router')) {
+          echo '✅ Router class loaded successfully\n';
+        } else {
+          echo '❌ Router class not found\n';
+          exit(1);
+        }
+        "
+
+    - name: Upload test artifacts on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-artifacts-${{ matrix.os }}-php${{ matrix.php }}
+        path: |
+          server.log
+          response.html
+          public/logs/*.log

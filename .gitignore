@@ -1,0 +1,13 @@
+.idea/
+.vscode/
+vendor/
+.DS_Store
+.env
+composer.lock
+
+# Test artifacts
+server.log
+response.html
+api_response.json
+test_manga_readers.db
+*.log
