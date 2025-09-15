@@ -1,5 +1,5 @@
 {
-    "name": "craft/mini-skeleton",
+    "name": "craftphp/mini-skeleton",
     "description": "This is a mini skeleton of Craft framework.",
     "require": {
         "php": ">=7.1",
