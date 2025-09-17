@@ -1,6 +1,8 @@
 {
     "name": "craftphp/mini-skeleton",
     "description": "This is a mini skeleton of Craft framework.",
+    "type": "project",
+    "license": "MIT",
     "require": {
         "php": ">=7.1",
         "datahihi1/tiny-env": "1.0.11",
