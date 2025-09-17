@@ -292,10 +292,10 @@ class Router
      */
     public static function group(string $prefix)
     {
-        // Lưu context hiện tại vào stack
+        // Save current context to stack
         self::$groupStack[] = self::$groupContext;
 
-        // Cập nhật context mới
+        // Update new context
         self::$groupContext['prefix'] = rtrim(self::$groupContext['prefix'], '/') . '/' . ltrim($prefix, '/');
         self::$groupContext['name'] = '';
         self::$groupContext['middleware'] = [];
@@ -305,7 +305,7 @@ class Router
     }
 
     /**
-     * Đặt prefix cho tên route trong group
+     * Set a name prefix for grouped routes.
      * @param string $prefix
      * @return static
      */
@@ -327,6 +327,11 @@ class Router
         }
         return new static();
     }
+    /**
+     * Set middleware for grouped routes.
+     * @param string|array $middleware The middleware(s) to apply.
+     * @return static
+     */
     public static function middleware($middleware)
     {
         if (is_string($middleware)) {

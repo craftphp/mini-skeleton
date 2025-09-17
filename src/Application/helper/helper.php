@@ -95,7 +95,7 @@ if (!function_exists('route')) {
      * 
      * @param string $name The route name.
      * @param array $params The route parameters.
-     * @return string|null
+     * @return string|null The generated URL or null if the route does not exist.
      */
     function route(string $name, array $params = []): ?string
     {
@@ -183,6 +183,22 @@ if (!function_exists('csrf_field')) {
     {
         $token = \TokenGenerator::csrf_generate();
         return '<input type="hidden" name="_csrf" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
+    }
+}
+#endregion
+
+#region View Helper
+if (!function_exists('view')) {
+    /**
+     * Render a view file with optional data.
+     * @param string $view The view file name (without .php).
+     * @param array $data The data to pass to the view.
+     * @return string The rendered view content.
+     * @throws Exception If the view file does not exist.
+     */
+    function view(string $view, array $data = []): string
+    {
+        return \Craft\Application\View::render($view, $data);
     }
 }
 #endregion

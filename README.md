@@ -60,9 +60,16 @@ echo Craft\Application\Session::getFlash('msg'); // Get and clear flash message
 - [TinyEnv](https://github.com/datahihi1/tiny-env.git)
 - [Composer](https://getcomposer.org/)
 ## Installation
+1. Clone the repository:
 
 ```bash
 composer install
+```
+
+2. With Composer, you can create a new project:
+
+```bash
+composer create-project craftphp/mini-skeleton your-project-name
 ```
 
 ## Contribution
