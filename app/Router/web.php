@@ -14,4 +14,12 @@ $router->apiGet('/hello/{name}', function ($name) : string {
     return "Hello, " . htmlspecialchars($name);
 });
 
-$router->runInstance();
+$router->apiGet('/hello/{param}', function ($param) : string {
+    return "Hello, " . htmlspecialchars($param);
+});
+
+// $router->all('/hello/{name}', function ($name) : string {
+//     return "Hello, " . htmlspecialchars($name);
+// });
+
+$router->run();

@@ -66,7 +66,6 @@ class Hash {
     public static function argon2i(string $string, array $options = []): string
     {
         if (!self::supportsArgon2i()) {
-            // Polyfill/fallback: use bcrypt with optional cost mapping if provided
             $bcryptOptions = [];
             if (isset($options['cost']) && is_int($options['cost'])) {
                 $bcryptOptions['cost'] = $options['cost'];
@@ -81,7 +80,6 @@ class Hash {
         }
 
         if ($hash === false) {
-            // Final safety net: fallback to bcrypt
             return self::bcrypt($string);
         }
         return $hash;

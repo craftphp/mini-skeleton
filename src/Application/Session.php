@@ -68,7 +68,7 @@ class Session
         self::start();
         if (isset($_SESSION['_flash'][$key])) {
             $value = $_SESSION['_flash'][$key];
-            unset($_SESSION['_flash'][$key]); // xoá sau khi đọc
+            unset($_SESSION['_flash'][$key]);
             return $value;
         }
         return null;

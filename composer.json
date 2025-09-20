@@ -20,5 +20,8 @@
             "src/Application/helper/TokenGenerator.php",
             "src/Kit/dump/var_dump.php"
         ]
+    },
+    "scripts": {
+        "Copy env": "copy .env.test .env"
     }
 }

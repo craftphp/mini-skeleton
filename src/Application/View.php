@@ -62,7 +62,6 @@ class View
      */
     public function view($view, $data = [])
     {
-        // Nếu engine là php (mặc định)
         if ($this->engine === 'php' || !$this->engineInstance) {
             $view = str_replace(['..', '\\'], '', $view);
             if (strpos($view, '.') !== false) {
@@ -77,37 +76,12 @@ class View
             require $filePath;
             return ob_get_clean();
         } else {
-            // Gọi drive engine tương ứng
             if (method_exists($this->engineInstance, 'render')) {
                 return $this->engineInstance->render($view, $data);
             } else {
                 throw new Exception("View engine does not support render method");
             }
         }
-    }
-
-    /**
-     * Generate a URL for a resource file.
-     * @param string $path The path to the resource file.
-     * @return string The URL for the resource file.
-     */
-    public static function resource($path = '')
-    {
-        // Detect base path for resource URL
-        $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
-        $base = dirname($scriptName);
-        // Nếu truy cập qua domain ảo (SCRIPT_NAME là /index.php hoặc /), base sẽ là /
-        // Nếu truy cập qua thư mục /public, base sẽ là /CraftLite/public
-        if (substr($base, -7) === '/public') {
-            $base = substr($base, 0, -7);
-        }
-        // Nếu base là '/' thì không cần nối gì thêm
-        $base = rtrim($base, '/\\');
-        if ($base === '' || $base === '/') {
-            $base = '';
-        }
-        $path = ltrim(str_replace(['..', '\\'], '', $path), '/');
-        return $base . '/resource/' . $path;
     }
 
     /**

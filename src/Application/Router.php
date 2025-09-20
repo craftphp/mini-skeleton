@@ -29,6 +29,9 @@ class Router
         'POST' => [],
         'PUT' => [],
         'DELETE' => [],
+        'PATCH' => [],
+        'HEAD' => [],
+        'OPTIONS' => [],
     ];
     /** @var array $staticApiRoutes Static API routes for static calls. */
     private static $staticApiRoutes = [
@@ -36,6 +39,9 @@ class Router
         'POST' => [],
         'PUT' => [],
         'DELETE' => [],
+        'PATCH' => [],
+        'HEAD' => [],
+        'OPTIONS' => [],
     ];
 
     /** @var array $routeNames Map tên route => [method, path] */
@@ -79,7 +85,6 @@ class Router
      */
     public static function get(string $path, $handler, array $middleware = [])
     {
-        // Kiểm tra xem có đang trong group context không
         if (!empty(self::$groupContext['prefix'])) {
             $fullPath = self::buildGroupPath($path);
             $fullMiddleware = array_merge(self::$groupContext['middleware'], $middleware);
@@ -89,7 +94,6 @@ class Router
             self::$staticRoutes['GET'][$fullPath] = ['handler' => $handler, 'middleware' => $fullMiddleware];
             self::$lastRegisteredRoute = ['method' => 'GET', 'path' => $fullPath];
 
-            // Tự động thêm name nếu có group name
             $groupName = self::$groupContext['name'];
             if ($groupName) {
                 $routeName = $groupName . str_replace('/', '.', trim($path, '/'));
@@ -115,7 +119,6 @@ class Router
      */
     public static function post(string $path, $handler, array $middleware = [])
     {
-        // Kiểm tra xem có đang trong group context không
         if (!empty(self::$groupContext['prefix'])) {
             $fullPath = self::buildGroupPath($path);
             $fullMiddleware = array_merge(self::$groupContext['middleware'], $middleware);
@@ -125,7 +128,6 @@ class Router
             self::$staticRoutes['POST'][$fullPath] = ['handler' => $handler, 'middleware' => $fullMiddleware];
             self::$lastRegisteredRoute = ['method' => 'POST', 'path' => $fullPath];
 
-            // Tự động thêm name nếu có group name
             $groupName = self::$groupContext['name'];
             if ($groupName) {
                 $routeName = $groupName . str_replace('/', '.', trim($path, '/'));
@@ -151,7 +153,6 @@ class Router
      */
     public static function put(string $path, $handler, array $middleware = [])
     {
-        // Kiểm tra xem có đang trong group context không
         if (!empty(self::$groupContext['prefix'])) {
             $fullPath = self::buildGroupPath($path);
             $fullMiddleware = array_merge(self::$groupContext['middleware'], $middleware);
@@ -161,7 +162,6 @@ class Router
             self::$staticRoutes['PUT'][$fullPath] = ['handler' => $handler, 'middleware' => $fullMiddleware];
             self::$lastRegisteredRoute = ['method' => 'PUT', 'path' => $fullPath];
 
-            // Tự động thêm name nếu có group name
             $groupName = self::$groupContext['name'];
             if ($groupName) {
                 $routeName = $groupName . str_replace('/', '.', trim($path, '/'));
@@ -178,7 +178,8 @@ class Router
         return new static();
     }
 
-    /** Register a DELETE route.
+    /** 
+     * Register a DELETE route.
      * @param string $path The route path.
      * @param mixed $handler The route handler (callable or [class, method]).
      * @param array $middleware Optional middleware for this route.
@@ -186,7 +187,6 @@ class Router
      */
     public static function delete(string $path, $handler, array $middleware = [])
     {
-        // Kiểm tra xem có đang trong group context không
         if (!empty(self::$groupContext['prefix'])) {
             $fullPath = self::buildGroupPath($path);
             $fullMiddleware = array_merge(self::$groupContext['middleware'], $middleware);
@@ -196,7 +196,6 @@ class Router
             self::$staticRoutes['DELETE'][$fullPath] = ['handler' => $handler, 'middleware' => $fullMiddleware];
             self::$lastRegisteredRoute = ['method' => 'DELETE', 'path' => $fullPath];
 
-            // Tự động thêm name nếu có group name
             $groupName = self::$groupContext['name'];
             if ($groupName) {
                 $routeName = $groupName . str_replace('/', '.', trim($path, '/'));
@@ -208,6 +207,108 @@ class Router
             }
             self::$staticRoutes['DELETE'][$path] = ['handler' => $handler, 'middleware' => $middleware];
             self::$lastRegisteredRoute = ['method' => 'DELETE', 'path' => $path];
+        }
+
+        return new static();
+    }
+
+    /**
+     * Register a PATCH route.
+     * @param string $path The route path.
+     * @param mixed $handler The route handler (callable or [class, method]).
+     * @param array $middleware Optional middleware for this route.
+     * @return static
+     */
+    public static function patch(string $path, $handler, array $middleware = [])
+    {
+        if (!empty(self::$groupContext['prefix'])) {
+            $fullPath = self::buildGroupPath($path);
+            $fullMiddleware = array_merge(self::$groupContext['middleware'], $middleware);
+            if (isset(self::$staticRoutes['PATCH'][$fullPath])) {
+                throw new Exception("Duplicate route detected: PATCH $fullPath ");
+            }
+            self::$staticRoutes['PATCH'][$fullPath] = ['handler' => $handler, 'middleware' => $fullMiddleware];
+            self::$lastRegisteredRoute = ['method' => 'PATCH', 'path' => $fullPath];
+
+            $groupName = self::$groupContext['name'];
+            if ($groupName) {
+                $routeName = $groupName . str_replace('/', '.', trim($path, '/'));
+                self::$routeNames[$routeName] = ['PATCH', $fullPath];
+            }
+        } else {
+            if (isset(self::$staticRoutes['PATCH'][$path])) {
+                throw new Exception("Duplicate route detected: PATCH $path ");
+            }
+            self::$staticRoutes['PATCH'][$path] = ['handler' => $handler, 'middleware' => $middleware];
+            self::$lastRegisteredRoute = ['method' => 'PATCH', 'path' => $path];
+        }
+
+        return new static();
+    }
+
+    /**
+     * Register a HEAD route.
+     * @param string $path The route path.
+     * @param mixed $handler The route handler (callable or [class, method]).
+     * @param array $middleware Optional middleware for this route.
+     * @return static
+     */
+    public static function head(string $path, $handler, array $middleware = [])
+    {
+        if (!empty(self::$groupContext['prefix'])) {
+            $fullPath = self::buildGroupPath($path);
+            $fullMiddleware = array_merge(self::$groupContext['middleware'], $middleware);
+            if (isset(self::$staticRoutes['HEAD'][$fullPath])) {
+                throw new Exception("Duplicate route detected: HEAD $fullPath ");
+            }
+            self::$staticRoutes['HEAD'][$fullPath] = ['handler' => $handler, 'middleware' => $fullMiddleware];
+            self::$lastRegisteredRoute = ['method' => 'HEAD', 'path' => $fullPath];
+
+            $groupName = self::$groupContext['name'];
+            if ($groupName) {
+                $routeName = $groupName . str_replace('/', '.', trim($path, '/'));
+                self::$routeNames[$routeName] = ['HEAD', $fullPath];
+            }
+        } else {
+            if (isset(self::$staticRoutes['HEAD'][$path])) {
+                throw new Exception("Duplicate route detected: HEAD $path ");
+            }
+            self::$staticRoutes['HEAD'][$path] = ['handler' => $handler, 'middleware' => $middleware];
+            self::$lastRegisteredRoute = ['method' => 'HEAD', 'path' => $path];
+        }
+
+        return new static();
+    }
+
+    /**
+     * Register an OPTIONS route.
+     * @param string $path The route path.
+     * @param mixed $handler The route handler (callable or [class, method]).
+     * @param array $middleware Optional middleware for this route.
+     * @return static
+     */
+    public static function options(string $path, $handler, array $middleware = [])
+    {
+        if (!empty(self::$groupContext['prefix'])) {
+            $fullPath = self::buildGroupPath($path);
+            $fullMiddleware = array_merge(self::$groupContext['middleware'], $middleware);
+            if (isset(self::$staticRoutes['OPTIONS'][$fullPath])) {
+                throw new Exception("Duplicate route detected: OPTIONS $fullPath ");
+            }
+            self::$staticRoutes['OPTIONS'][$fullPath] = ['handler' => $handler, 'middleware' => $fullMiddleware];
+            self::$lastRegisteredRoute = ['method' => 'OPTIONS', 'path' => $fullPath];
+
+            $groupName = self::$groupContext['name'];
+            if ($groupName) {
+                $routeName = $groupName . str_replace('/', '.', trim($path, '/'));
+                self::$routeNames[$routeName] = ['OPTIONS', $fullPath];
+            }
+        } else {
+            if (isset(self::$staticRoutes['OPTIONS'][$path])) {
+                throw new Exception("Duplicate route detected: OPTIONS $path ");
+            }
+            self::$staticRoutes['OPTIONS'][$path] = ['handler' => $handler, 'middleware' => $middleware];
+            self::$lastRegisteredRoute = ['method' => 'OPTIONS', 'path' => $path];
         }
 
         return new static();
@@ -284,6 +385,72 @@ class Router
         return new static();
     }
 
+    /** Register a PATCH API route.
+     * @param string $path The API route path.
+     * @param mixed $handler The route handler (callable or [class, method]).
+     * @param array $middleware Optional middleware for this route.
+     * @return static
+     */
+    public static function apiPatch(string $path, $handler, array $middleware = [])
+    {
+        $path = self::normalizeApiPathStatic($path);
+        if (isset(self::$staticApiRoutes['PATCH'][$path])) {
+            throw new Exception("Duplicate route detected: PATCH $path (API)");
+        }
+        self::$staticApiRoutes['PATCH'][$path] = ['handler' => $handler, 'middleware' => $middleware];
+        self::$lastRegisteredRoute = ['method' => 'PATCH', 'path' => $path, 'api' => true];
+        return new static();
+    }
+
+    /** Register a HEAD API route.
+     * @param string $path The API route path.
+     * @param mixed $handler The route handler (callable or [class, method]).
+     * @param array $middleware Optional middleware for this route.
+     * @return static
+     */
+    public static function apiHead(string $path, $handler, array $middleware = [])
+    {
+        $path = self::normalizeApiPathStatic($path);
+        if (isset(self::$staticApiRoutes['HEAD'][$path])) {
+            throw new Exception("Duplicate route detected: HEAD $path (API)");
+        }
+        self::$staticApiRoutes['HEAD'][$path] = ['handler' => $handler, 'middleware' => $middleware];
+        self::$lastRegisteredRoute = ['method' => 'HEAD', 'path' => $path, 'api' => true];
+        return new static();
+    }
+
+    /** Register an OPTIONS API route.
+     * @param string $path The API route path.
+     * @param mixed $handler The route handler (callable or [class, method]).
+     * @param array $middleware Optional middleware for this route.
+     * @return static
+     */
+
+    public static function apiOptions(string $path, $handler, array $middleware = [])
+    {
+        $path = self::normalizeApiPathStatic($path);
+        if (isset(self::$staticApiRoutes['OPTIONS'][$path])) {
+            throw new Exception("Duplicate route detected: OPTIONS $path (API)");
+        }
+        self::$staticApiRoutes['OPTIONS'][$path] = ['handler' => $handler, 'middleware' => $middleware];
+        self::$lastRegisteredRoute = ['method' => 'OPTIONS', 'path' => $path, 'api' => true];
+        return new static();
+    }
+
+    // --- ALL ROUTE METHODS ---
+    /**
+     * Register a route that responds to all HTTP methods.
+     * 
+     * **Note:** all() not supported API routes.
+     * 
+     * @param string $path The route path.
+     * @param mixed $handler The route handler (callable or [class, method]).
+     * @param array $middleware Optional middleware for this route.
+     */
+    public static function all(string $path, $handler, array $middleware = [])
+    {
+    }
+
     // --- GROUP ROUTE METHODS ---
     /**
      * Group routes under a common prefix.
@@ -292,10 +459,8 @@ class Router
      */
     public static function group(string $prefix)
     {
-        // Save current context to stack
         self::$groupStack[] = self::$groupContext;
 
-        // Update new context
         self::$groupContext['prefix'] = rtrim(self::$groupContext['prefix'], '/') . '/' . ltrim($prefix, '/');
         self::$groupContext['name'] = '';
         self::$groupContext['middleware'] = [];
@@ -314,6 +479,11 @@ class Router
         self::$groupContext['namePrefix'] = $prefix;
         return new static();
     }
+    /**
+     * Set a name for the last registered route or for grouped routes.
+     * @param string $name The name to assign.
+     * @return static
+     */
     public static function name(string $name): self
     {
         $prefix = self::$groupContext['namePrefix'] ?? '';
@@ -349,23 +519,36 @@ class Router
     {
         $callback();
 
-        // Khôi phục context cũ
         self::$groupContext = array_pop(self::$groupStack);
 
         return new static();
     }
 
     // --- HELPER FUNCTIONS FOR GROUPED ROUTES ---
+    /**
+     * Build the full path for a route within a group.
+     * @param string $path The route path.
+     * @return string The full path with group prefix.
+     */
     private static function buildGroupPath(string $path): string
     {
         $prefix = self::$groupContext['prefix'];
         $fullPath = rtrim($prefix, '/') . '/' . ltrim($path, '/');
         return '/' . ltrim($fullPath, '/');
     }
+    /**
+     * Get the current group name.
+     * @return string|null The current group name or null if not set.
+     */
     public static function getGroupName(): ?string
     {
         return self::$groupContext['name'] ?: null;
     }
+    /**
+     * Normalize the API path to ensure it starts with /api/.
+     * @param string $path The API route path.
+     * @return string The normalized API path.
+     */
     private static function normalizeApiPathStatic(string $path): string
     {
         $trimmed = trim($path, '/');
@@ -383,14 +566,13 @@ class Router
      */
     public function runInstance(): void
     {
-        // Merge static routes
         foreach (self::$staticRoutes as $method => $routes) {
             if (!isset($this->routes[$method])) {
                 $this->routes[$method] = [];
             }
             $this->routes[$method] = array_merge($this->routes[$method], $routes);
         }
-        // Merge static API routes
+
         foreach (self::$staticApiRoutes as $method => $routes) {
             if (!isset($this->apiRoutes[$method])) {
                 $this->apiRoutes[$method] = [];
@@ -458,7 +640,6 @@ class Router
 
         $matchedParamRoute = false;
         foreach ($this->routes[$method] ?? [] as $route => $routeData) {
-            // Lấy prefix trước {param}
             $routePrefix = preg_replace('#\{([^/]+)\}#', '', rtrim($route, '/'));
             if ($routePrefix !== '' && (rtrim($uri, '/') === rtrim($routePrefix, '/'))) {
                 $matchedParamRoute = $route;
@@ -470,7 +651,7 @@ class Router
             throw new Exception("400 Bad Request: Missing required parameter for route <b>$matchedParamRoute</b>.");
         }
 
-        // Kiểm tra thiếu param cho API route
+        // Check missing param for API route
         $matchedApiParamRoute = false;
         foreach ($this->apiRoutes[$method] ?? [] as $route => $routeData) {
             $routePrefix = preg_replace('#\{([^/]+)\}#', '', rtrim($route, '/'));
@@ -485,9 +666,9 @@ class Router
             throw new Exception("400 Bad Request: Missing required parameter for API route $matchedApiParamRoute.");
         }
 
-        http_response_code(404);
+        http_response_code('404');
         // throw new Exception("404 Not Found: The requested URL " . $uri . " was not found on this server.");
-        // // header('HTTP/1.1 404 Not Found');
+        header('HTTP/1.1 404 Not Found');
     }
     /**
      * Run the route handler.
@@ -510,14 +691,12 @@ class Router
 
         $context = ['params' => $params, 'request' => $this->request];
         foreach ($middleware as $mw) {
-            // Check if middleware is a string (registered middleware name)
             if (is_string($mw)) {
                 $result = \Craft\Application\Middleware::run($mw, $context);
                 if ($result === false) {
-                    return; // Middleware blocked the request
+                    return;
                 }
             } else {
-                // Direct callable middleware
                 $result = call_user_func($mw, $context);
                 if ($result !== null) {
                     echo $result;
@@ -558,6 +737,12 @@ class Router
         http_response_code(500);
         throw new Exception("Invalid route handler");
     }
+    /**
+     * Handle an API route request.
+     * @param string $method The HTTP method of the request.
+     * @param string $uri The URI of the request.
+     * @return bool True if the API route was handled, false otherwise.
+     */
     private function handleApiRoute(string $method, string $uri): bool
     {
         if (isset($this->apiRoutes[$method][$uri])) {
@@ -574,6 +759,12 @@ class Router
 
         return false;
     }
+    /**
+     * Respond to an API route request.
+     * @param array $routeData Contains the handler and middleware for the API route.
+     * @param array $params Optional parameters to pass to the handler.
+     * @return bool True if the response was handled, false otherwise.
+     */
     private function respondApi(array $routeData, array $params = []): bool
     {
         $handler = $routeData['handler'];
@@ -627,6 +818,10 @@ class Router
         echo json_encode(['error' => 'Invalid API route']);
         return true;
     }
+    /**
+     * Get all registered routes (standard and API).
+     * @return array An associative array of all routes categorized by HTTP method.
+     */
     protected function getAllRoute(): array
     {
         $all = [];
@@ -643,6 +838,12 @@ class Router
         return $all;
     }
 
+    /**
+     * Generate a URL for a named route.
+     * @param string $name The name of the route.
+     * @param array $params Optional parameters to replace in the route path.
+     * @return string|null The generated URL or null if the route name does not exist.
+     */
     public static function route(string $name, array $params = []): ?string
     {
         if (!isset(self::$routeNames[$name]))
@@ -692,7 +893,6 @@ class Router
                 ob_start();
                 try {
                     if ($isApi) {
-                        // Chạy kiểm tra cho API route
                         (new static())->handleApiRoute($realMethod, $testPath);
                     } else {
                         (new static())->runInstance();

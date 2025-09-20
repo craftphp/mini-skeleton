@@ -5,6 +5,7 @@ use \Craft\Reports\CraftParse;
 use \Craft\Reports\CraftError;
 use \Craft\Reports\CraftException;
 use \Craft\Reports\CraftRuntime;
+use \Datahihi1\TinyEnv\TinyEnv;
 use \Exception;
 
 /**
@@ -22,7 +23,7 @@ class App
      * Version of Craft Framework (Mini edition).
      * @var string
      */
-    public const version = '0.1.0-alpha';
+    public const version = '0.1.20250920-mini+dev';
 
     /**
      * Application environment
@@ -39,7 +40,7 @@ class App
     /**
      * Initialize application configuration
      */
-    public static function initializeConfig(): void
+    private static function initializeConfig(): void
     {
         self::$environment = env('APP_ENVIRONMENT', 'production');
         self::$debug = env('APP_DEBUG', 'false');
@@ -242,7 +243,7 @@ class App
      * 
      * @return array
      */
-    public static function healthCheck(): array
+    private static function healthCheck(): array
     {
         $health = [
             'status' => 'healthy',
@@ -285,10 +286,11 @@ class App
      */
     private static function loadEnvironmentVariables()
     {
-        if (!class_exists(\Datahihi1\TinyEnv\TinyEnv::class)) {
+        if (!class_exists(TinyEnv::class)) {
             throw new Exception('TinyEnv is not installed. Please run "composer require datahihi1/tiny-env"');
         }
-        $env = new \Datahihi1\TinyEnv\TinyEnv(ROOT_DIR);
+        $env = new TinyEnv(ROOT_DIR);
+        $env->envfiles(['.env', '.env.test']);
         $env->load();
     }
 
@@ -350,7 +352,7 @@ class App
      * @return void
      * @throws Exception if the route configuration file is not found or invalid
      */
-    public static function initializeRoute()
+    private static function initializeRoute()
     {
         // Initialize routing configuration
         $routeConfigPath = ROOT_DIR . 'app/Router/web.php';
@@ -417,7 +419,7 @@ class App
             // self::validateDatabaseConfig();
         } catch (Exception $e) {
             if (self::isDebug()) {
-                self::initializeErrorReporting();
+                self::initializeErrorReporting(INDEX_DIR . 'logs/');
                 throw $e;
             }
         }
