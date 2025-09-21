@@ -22,9 +22,15 @@
         ]
     },
     "scripts": {
-        "CopyEnv": "@php -r \"copy('.env.test', '.env');\"",
+        "CopyEnv": "@php -r \"if (file_exists('.env.test') && !file_exists('.env')) copy('.env.test', '.env');\"",
         "post-install-cmd": [
-            "CopyEnv"
+            "@CopyEnv"
+        ],
+        "post-update-cmd": [
+            "@CopyEnv"
+        ],
+        "post-create-project-cmd": [
+            "@CopyEnv"
         ]
     }
 }
