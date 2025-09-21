@@ -440,15 +440,39 @@ class Router
     // --- ALL ROUTE METHODS ---
     /**
      * Register a route that responds to all HTTP methods.
-     * 
-     * **Note:** all() not supported API routes.
-     * 
+     *
      * @param string $path The route path.
      * @param mixed $handler The route handler (callable or [class, method]).
      * @param array $middleware Optional middleware for this route.
+     * @return static
      */
     public static function all(string $path, $handler, array $middleware = [])
     {
+        foreach (['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'] as $method) {
+            if (!empty(self::$groupContext['prefix'])) {
+                $fullPath = self::buildGroupPath($path);
+                $fullMiddleware = array_merge(self::$groupContext['middleware'], $middleware);
+                if (isset(self::$staticRoutes[$method][$fullPath])) {
+                    throw new Exception("Duplicate route detected: $method $fullPath ");
+                }
+                self::$staticRoutes[$method][$fullPath] = ['handler' => $handler, 'middleware' => $fullMiddleware];
+                self::$lastRegisteredRoute = ['method' => $method, 'path' => $fullPath];
+
+                $groupName = self::$groupContext['name'];
+                if ($groupName) {
+                    $routeName = $groupName . str_replace('/', '.', trim($path, '/'));
+                    self::$routeNames[$routeName] = [$method, $fullPath];
+                }
+            } else {
+                if (isset(self::$staticRoutes[$method][$path])) {
+                    throw new Exception("Duplicate route detected: $method $path ");
+                }
+                self::$staticRoutes[$method][$path] = ['handler' => $handler, 'middleware' => $middleware];
+                self::$lastRegisteredRoute = ['method' => $method, 'path' => $path];
+            }
+        }
+
+        return new static();
     }
 
     // --- GROUP ROUTE METHODS ---
@@ -825,7 +849,7 @@ class Router
     protected function getAllRoute(): array
     {
         $all = [];
-        foreach (['GET', 'POST', 'PUT', 'DELETE'] as $method) {
+        foreach (['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'] as $method) {
             $all[$method] = array_merge(
                 self::$staticRoutes[$method] ?? [],
                 $this->routes[$method] ?? []
