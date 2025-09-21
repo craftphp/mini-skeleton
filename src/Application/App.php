@@ -23,7 +23,7 @@ class App
      * Version of Craft Framework (Mini edition).
      * @var string
      */
-    public const version = '0.1.20250920-mini+dev';
+    public const version = '0.1.20250921-mini+dev';
 
     /**
      * Application environment

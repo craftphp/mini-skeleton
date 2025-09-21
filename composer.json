@@ -22,6 +22,9 @@
         ]
     },
     "scripts": {
-        "Copy env": "copy .env.test .env"
+        "CopyEnv": "@php -r \"copy('.env.test', '.env');\"",
+        "post-install-cmd": [
+            "CopyEnv"
+        ]
     }
 }
