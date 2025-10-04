@@ -137,7 +137,13 @@ if (!function_exists('session')) {
 }
 
 if (!function_exists("flash")){
-    function flash($key = null, $value = null){
+    /**
+     * Flash data to session.
+     * @param string $key The session flash key.
+     * @param mixed $value The session flash value.
+     * @return void
+     */
+    function flash(string $key, $value): void {
         Session::flash($key, $value);
     }
 }

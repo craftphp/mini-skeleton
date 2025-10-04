@@ -9,6 +9,8 @@ abstract class BaseBuilder implements BuilderInterface {
     protected $columns = ['*'];
     protected $wheres = [];
     protected $bindings = [];
+    protected $operation = null; // select|insert|update|delete
+    protected $pendingData = [];
 
     public function __construct($adapter, string $table)
     {
@@ -23,10 +25,20 @@ abstract class BaseBuilder implements BuilderInterface {
 
     public function select($columns = ['*']): BuilderInterface {
         $this->columns = is_array($columns) ? $columns : func_get_args();
+        $this->operation = 'select';
         return $this;
     }
 
-    public function where($column, $operator = null, $value = null): BuilderInterface {
+    public function where($column, $value = null, $operator = "="): BuilderInterface {
+        // Support shorthand: where('id', $id) => where('id', '=', $id)
+        if ($value === null && $operator !== null) {
+            $value = $operator;
+            $operator = '=';
+        }
+        if ($operator === null && $value !== null) {
+            $operator = '=';
+        }
+
         $this->wheres[] = [$column, $operator, $value];
         $this->bindings[] = $value;
         return $this;
@@ -75,38 +87,28 @@ abstract class BaseBuilder implements BuilderInterface {
         return $this->fetchAll();
     }
 
-    /**
-     * Execute INSERT and return the created ID (if supported)
-     */
-    public function insertGetId(array $data)
+    public function insert(array $data): BuilderInterface
     {
-        $sql = $this->insert($data);
-        $params = array_values($data);
-        $this->adapter->query($sql, $params);
-        if (method_exists($this->adapter, 'lastInsertId')) {
-            return $this->adapter->lastInsertId();
-        }
-        return null;
+        $this->operation = 'insert';
+        $this->pendingData = $data;
+        return $this;
     }
 
-    /**
-     * Execute UPDATE, return true if successful
-     */
-    public function executeUpdate(array $data)
+    public function update(array $data): BuilderInterface
     {
-        $sql = $this->update($data);
-        $params = array_values($data);
-        $params = array_merge($params, $this->getBindings());
-        return $this->adapter->query($sql, $params) ? true : false;
+        $this->operation = 'update';
+        $this->pendingData = $data;
+        return $this;
     }
 
-    /**
-     * Thực thi DELETE, trả về true nếu thành công
-     */
-    public function executeDelete()
+    public function delete(): BuilderInterface
     {
-        $sql = $this->delete();
-        $params = $this->getBindings();
-        return $this->adapter->query($sql, $params) ? true : false;
+        $this->operation = 'delete';
+        return $this;
+    }
+
+    public function execute()
+    {
+        throw new \BadMethodCallException('execute() must be implemented in the concrete builder.');
     }
 }

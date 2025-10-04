@@ -16,9 +16,9 @@
         "files": [
             "src/Application/helper/helper.php",
             "src/Application/helper/source.php",
-            "src/Application/helper/deprecation.php",
             "src/Application/helper/TokenGenerator.php",
-            "src/Kit/dump/var_dump.php"
+            "src/Kit/dump/var_dump.php",
+            "src/Kit/helper/html_helper.php"
         ]
     },
     "scripts": {

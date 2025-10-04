@@ -23,7 +23,7 @@ class App
      * Version of Craft Framework (Mini edition).
      * @var string
      */
-    public const version = '0.1.20250921-mini+dev';
+    public const version = '0.1.20251004-mini+dev';
 
     /**
      * Application environment
@@ -356,10 +356,14 @@ class App
     {
         // Initialize routing configuration
         $routeConfigPath = ROOT_DIR . 'app/Router/web.php';
+        $apiRouteConfigPath = ROOT_DIR . 'app/Router/api.php';
         if (file_exists($routeConfigPath)) {
             require $routeConfigPath;
         } else {
             throw new Exception("Route configuration file not found: " . $routeConfigPath);
+        }
+        if (file_exists($apiRouteConfigPath)) {
+            require $apiRouteConfigPath;
         }
     }
 
@@ -439,6 +443,8 @@ class App
 
         // Start run route handler
         self::initializeRoute();
+
+        \Craft\Application\Router::run();
     }
 }
 #endregion

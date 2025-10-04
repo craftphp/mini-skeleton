@@ -14,7 +14,7 @@ class MysqlMapper extends BaseMapper {
         return $this->adapter->fetchAll($result);
     }
 
-    public function where($column, $operator, $value) {
+    public function where($column, $value, $operator = "=") {
         $sql = "SELECT * FROM `{$this->table}` WHERE `{$column}` {$operator} ?";
         $result = $this->adapter->query($sql, [$value]);
         return $this->adapter->fetchAll($result);
@@ -40,5 +40,24 @@ class MysqlMapper extends BaseMapper {
     public function delete($id) {
         $sql = "DELETE FROM `{$this->table}` WHERE id = ?";
         return $this->adapter->query($sql, [$id]);
+    }
+    public function insertGetId(array $data) {
+        $this->create($data);
+        return $this->adapter->lastInsertId();
+    }
+    public function executeUpdate(array $data) {
+        if (!isset($data['id'])) {
+            throw new \InvalidArgumentException("ID is required for update.");
+        }
+        $id = $data['id'];
+        unset($data['id']);
+        return $this->update($id, $data);
+    }
+    public function executeDelete(array $data) {
+        if (!isset($data['id'])) {
+            throw new \InvalidArgumentException("ID is required for delete.");
+        }
+        $id = $data['id'];
+        return $this->delete($id);
     }
 }

@@ -82,6 +82,7 @@ class Router
      * @param mixed $handler The route handler (callable or [class, method]).
      * @param array $middleware Optional middleware for this route.
      * @return static
+     * @throws Exception if duplicate route detected
      */
     public static function get(string $path, $handler, array $middleware = [])
     {
@@ -150,6 +151,7 @@ class Router
      * @param mixed $handler The route handler (callable or [class, method]).
      * @param array $middleware Optional middleware for this route.
      * @return static
+     * @throws Exception if duplicate route detected
      */
     public static function put(string $path, $handler, array $middleware = [])
     {
@@ -184,6 +186,7 @@ class Router
      * @param mixed $handler The route handler (callable or [class, method]).
      * @param array $middleware Optional middleware for this route.
      * @return static
+     * @throws Exception if duplicate route detected
      */
     public static function delete(string $path, $handler, array $middleware = [])
     {
@@ -218,6 +221,7 @@ class Router
      * @param mixed $handler The route handler (callable or [class, method]).
      * @param array $middleware Optional middleware for this route.
      * @return static
+     * @throws Exception if duplicate route detected
      */
     public static function patch(string $path, $handler, array $middleware = [])
     {
@@ -252,6 +256,7 @@ class Router
      * @param mixed $handler The route handler (callable or [class, method]).
      * @param array $middleware Optional middleware for this route.
      * @return static
+     * @throws Exception if duplicate route detected
      */
     public static function head(string $path, $handler, array $middleware = [])
     {
@@ -286,6 +291,7 @@ class Router
      * @param mixed $handler The route handler (callable or [class, method]).
      * @param array $middleware Optional middleware for this route.
      * @return static
+     * @throws Exception if duplicate route detected
      */
     public static function options(string $path, $handler, array $middleware = [])
     {
@@ -672,10 +678,9 @@ class Router
         }
         if ($matchedParamRoute) {
             http_response_code(400);
-            throw new Exception("400 Bad Request: Missing required parameter for route <b>$matchedParamRoute</b>.");
+            throw new Exception("400 Bad Request: Missing required parameter for route $matchedParamRoute.");
         }
 
-        // Check missing param for API route
         $matchedApiParamRoute = false;
         foreach ($this->apiRoutes[$method] ?? [] as $route => $routeData) {
             $routePrefix = preg_replace('#\{([^/]+)\}#', '', rtrim($route, '/'));

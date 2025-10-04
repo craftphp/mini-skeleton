@@ -63,7 +63,7 @@ class Session
      * @param string $key The session flash key.
      * @return mixed
      */
-    public static function getFlash($key)
+    public static function getFlash(string $key)
     {
         self::start();
         if (isset($_SESSION['_flash'][$key])) {
@@ -80,7 +80,7 @@ class Session
      * @param string $message The error message.
      * @return $this
      */
-    public function withError($message)
+    public function withError(string $message)
     {
         self::start();
         $_SESSION['_error'] = $message;
@@ -93,7 +93,7 @@ class Session
      * @param string $message The success message.
      * @return $this
      */
-    public function withSuccess($message)
+    public function withSuccess(string $message)
     {
         self::start();
         $_SESSION['_success'] = $message;
