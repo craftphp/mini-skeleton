@@ -2,7 +2,7 @@
 namespace Craft\Application;
 
 /**
- * #### Class Hash
+ * #### Class Hash extends from password PHP functions
  * 
  * A simple utility class for hashing and verifying strings using default, bcrypt.
  */

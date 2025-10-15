@@ -5,6 +5,7 @@ use Craft\Database\Interfaces\AdapterInterface;
 
 /**
  * #### PDO MySQL Database Adapter using pdo_mysql extension
+ * **Require**: the `pdo` and `pdo_mysql` PHP extensions.
  */
 class PdoMysqlAdapter implements AdapterInterface
 {

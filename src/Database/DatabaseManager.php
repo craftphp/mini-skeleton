@@ -1,4 +1,5 @@
 <?php
+
 namespace Craft\Database;
 
 use Craft\Database\Adapter\MysqliAdapter;
@@ -14,20 +15,42 @@ use Craft\Database\QueryBuilder\SqliteBuilder;
  * #### DatabaseManager class
  * 
  * Manages database connections and mappers/builders based on configuration.
+ * 
+ * It supports different database drivers and design patterns:
+ * - Drivers: `mysqli`, `pdo_mysql`, `sqlite3`, `pdo_sqlite`, and more if needed
+ * - Designs: `mapper` (active record style) and `builder` (query builder style)
  */
 class DatabaseManager
 {
+    /** Supported database drivers */
+    protected const SUPPORTED_DRIVERS = ['mysqli', 'pdo_mysql', 'sqlite3', 'pdo_sqlite'];
+    /** Supported database designs */
+    protected const SUPPORTED_DESIGNS = ['mapper', 'builder'];
     /** Adapter instance */
     protected $adapter;
     protected $mapper;
     protected $builder;
+    /** Mapper or Builder class name based on design */
     protected $mapperClass;
-    protected $builderClass;
 
     public function __construct()
     {
-        $driver = env('DB_DRIVER', 'pdo_mysql');
-        $design = env('DB_DESIGN', 'mapper');
+        $driver = env('DB_DRIVER');
+        if (!$driver) {
+            throw new \InvalidArgumentException("DB_DRIVER is not set.");
+        }
+        if (!in_array($driver, self::SUPPORTED_DRIVERS, true)) {
+            throw new \InvalidArgumentException("Invalid DB_DRIVER: $driver" . ". Accepts: " . implode(', ', self::SUPPORTED_DRIVERS) . ".");
+        }
+
+        $design = env('DB_DESIGN');
+        if (!$design) {
+            throw new \InvalidArgumentException("DB_DESIGN is not set.");
+        }
+        if (!in_array($design, self::SUPPORTED_DESIGNS, true)) {
+            throw new \InvalidArgumentException("Invalid DB_DESIGN: $design". ". Accepts: " . implode(', ', self::SUPPORTED_DESIGNS) . ".");
+        }
+
         $config = $this->getConfig($driver);
 
         switch ($driver) {
@@ -72,14 +95,27 @@ class DatabaseManager
             return [
                 'database' => env('DB_SQLITE_FILE') . '.db',
             ];
-        }
-        else if (strpos($driver, 'mysql') !== false) {
+        } else if (strpos($driver, 'mysql') !== false) {
             return [
                 'host'     => env('DB_HOST'),
                 'port'     => env('DB_PORT'),
                 'user'     => env('DB_USER'),
                 'password' => env('DB_PASS') ?? null,
                 'database' => env('DB_NAME'),
+            ];
+        } else if ($driver === 'mongodb') {
+            // Support either full URI or host/port/db
+            $uri = env('DB_MONGODB_URI');
+            if ($uri) {
+                return ['uri' => $uri, 'database' => env('DB_MONGODB_DB')];
+            }
+            return [
+                'host'     => env('DB_HOST', 'localhost'),
+                'port'     => env('DB_PORT', 27017),
+                'database' => env('DB_NAME', 'manga_reader'),
+                'user'     => env('DB_USER') ?: null,
+                'password' => env('DB_PASS') ?: null,
+                'uri'      => null,
             ];
         }
     }

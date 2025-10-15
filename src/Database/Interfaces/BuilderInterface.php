@@ -11,6 +11,8 @@ interface BuilderInterface {
     public function select($columns = ['*']): self;
     /** Add a WHERE clause */
     public function where($column, $value = null, $operator = "="): self;
+    /** Add an OR WHERE clause */
+    public function orWhere($column, $value = null): self;
     /** Begin a pending INSERT; call execute() to run and get last insert id */
     public function insert(array $data): self;
     /** Begin a pending UPDATE; call execute() to run and get affected rows */

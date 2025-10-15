@@ -1,6 +1,9 @@
 <?php
 namespace Craft\Database\Interfaces;
 
+/**
+ * Interface for database adapters (e.g., PDO, MySQLi).
+ */
 interface AdapterInterface{
     public function connect(array $config);
     public function disconnect();

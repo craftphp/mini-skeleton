@@ -1,6 +1,9 @@
 <?php
 namespace Craft\Database\Interfaces;
 
+/**
+ * Interface for data mappers providing CRUD operations.
+ */
 interface MapperInterface {
     public function find($id);
     public function all();

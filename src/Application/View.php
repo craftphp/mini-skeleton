@@ -5,7 +5,7 @@ namespace Craft\Application;
 use \Exception;
 
 /**
- * #### Class View
+ * #### Class View to render views with data
  * 
  *  View class for rendering views with data and redirecting to a given URL or route name.
  */

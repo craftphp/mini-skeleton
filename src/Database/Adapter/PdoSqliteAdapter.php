@@ -5,6 +5,7 @@ use Craft\Database\Interfaces\AdapterInterface;
 
 /**
  * #### PDO SQLite Database Adapter using pdo_sqlite extension
+ * **Require**: the `pdo_sqlite` PHP extension.
  */
 class PdoSqliteAdapter implements AdapterInterface
 {

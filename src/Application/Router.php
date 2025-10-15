@@ -50,6 +50,9 @@ class Router
     /** @var array|null $lastRegisteredRoute Stores the method and path of the last registered route. */
     private static $lastRegisteredRoute = null;
 
+    /** @var callable|null $defaultHandler Handler called when no route matches */
+    private static $defaultHandler = null;
+
     /** @var array $groupContext Stores the current group context for grouped routes */
     private static $groupContext = [
         'prefix' => '',
@@ -61,9 +64,18 @@ class Router
     /** @var array $groupStack Stores the group stack for nested groups */
     private static $groupStack = [];
 
-    public function __construct($request = null)
+    /** @var array $container Dependency Injection container for resolving class instances. */
+    private $container = [];
+
+    /**
+     * Constructor for the Router class.
+     * @param mixed $request The request object or array.
+     * @param array $container Dependency Injection container for resolving class instances.
+     */
+    public function __construct($request = null, array $container = [])
     {
         $this->request = $request;
+        $this->container = $container;
     }
     public function addMiddleware(callable $middleware): void
     {
@@ -528,12 +540,23 @@ class Router
         return new static();
     }
     /**
-     * Set middleware for grouped routes.
-     * @param string|array $middleware The middleware(s) to apply.
+     * Register a default handler to be executed when no route matches.
+     * @param callable $handler
      * @return static
      */
-    public static function middleware($middleware)
+    public static function default(callable $handler)
     {
+        http_response_code(404);
+        self::$defaultHandler = $handler;
+        return new static();
+    }
+     /**
+      * Set middleware for grouped routes.
+      * @param string|array $middleware The middleware(s) to apply.
+      * @return static
+      */
+     public static function middleware($middleware)
+     {
         if (is_string($middleware)) {
             self::$groupContext['middleware'] = [$middleware];
         } elseif (is_array($middleware)) {
@@ -695,8 +718,38 @@ class Router
             throw new Exception("400 Bad Request: Missing required parameter for API route $matchedApiParamRoute.");
         }
 
-        http_response_code('404');
-        // throw new Exception("404 Not Found: The requested URL " . $uri . " was not found on this server.");
+        // If a default handler is registered, call it
+        if (self::$defaultHandler) {
+            $handler = self::$defaultHandler;
+            if (is_array($handler)) {
+                [$class, $method] = $handler;
+                if (class_exists($class)) {
+                    $instance = new $class();
+                    if (!method_exists($instance, $method)) {
+                        http_response_code(500);
+                        throw new Exception("500 Internal Server Error: Default handler method $method() not found in class $class");
+                    }
+                    $ref = new \ReflectionMethod($instance, $method);
+                    $args = [];
+                    if ($ref->getNumberOfParameters() > 0) {
+                        $args[] = $this->request;
+                    }
+                    echo call_user_func_array([$instance, $method], $args);
+                    return;
+                }
+            } elseif (is_callable($handler)) {
+                $ref = new \ReflectionFunction(Closure::fromCallable($handler));
+                $args = [];
+                if ($ref->getNumberOfParameters() > 0) {
+                    $args[] = $this->request;
+                }
+                echo call_user_func_array($handler, $args);
+                return;
+            }
+        }
+
+        // Fallback 404 if no default handler
+        http_response_code(404);
         header('HTTP/1.1 404 Not Found');
     }
     /**
@@ -740,7 +793,7 @@ class Router
                 http_response_code(500);
                 throw new Exception("500 Internal Server Error: Class not found: $class");
             }
-            $instance = new $class();
+            $instance = $this->resolveClass($class);
             if (!method_exists($instance, $method)) {
                 http_response_code(500);
                 throw new Exception("500 Internal Server Error: Method $method() not found in class $class");
@@ -765,6 +818,69 @@ class Router
         }
         http_response_code(500);
         throw new Exception("Invalid route handler");
+    }
+        /**
+     * Resolve a class instance using simple reflection-based DI.
+     * Supports pre-bound instances/closures in $this->container.
+     * Recursively resolves constructor type-hinted class parameters.
+     *
+     * @param string $class The class name to resolve.
+     * @return object
+     * @throws Exception
+     */
+    private function resolveClass(string $class)
+    {
+        // return pre-bound instance or factory
+        if (isset($this->container[$class])) {
+            $entry = $this->container[$class];
+            if (is_callable($entry)) {
+                return $entry($this);
+            }
+            return $entry;
+        }
+
+        if (!class_exists($class)) {
+            throw new Exception("500 Internal Server Error: Class not found: $class");
+        }
+
+        $refClass = new \ReflectionClass($class);
+        $constructor = $refClass->getConstructor();
+        if (!$constructor) {
+            return $refClass->newInstance();
+        }
+
+        $params = $constructor->getParameters();
+        $args = [];
+        foreach ($params as $p) {
+            $type = $p->getType();
+
+            if ($type !== null) {
+                $typeName = method_exists($type, 'getName') ? $type->getName() : (string)$type;
+
+                $isBuiltin = method_exists($type, 'isBuiltin')
+                    ? $type->isBuiltin()
+                    : in_array($typeName, ['int', 'float', 'string', 'bool', 'array', 'callable', 'iterable', 'resource', 'object', 'mixed'], true);
+
+                if (!$isBuiltin) {
+                    $args[] = $this->resolveClass($typeName);
+                    continue;
+                }
+            }
+
+            if ($p->isDefaultValueAvailable()) {
+                $args[] = $p->getDefaultValue();
+                continue;
+            }
+
+            if ($type !== null && method_exists($type, 'allowsNull') && $type->allowsNull()) {
+                $args[] = null;
+                continue;
+            }
+
+            throw new Exception("500 Internal Server Error: Cannot resolve parameter \${$p->getName()} for class $class");
+        }
+
+        return $refClass->newInstanceArgs($args);
     }
     /**
      * Handle an API route request.
@@ -814,7 +930,7 @@ class Router
         if (is_array($handler)) {
             [$class, $method] = $handler;
             if (class_exists($class)) {
-                $instance = new $class();
+                $instance = $this->resolveClass($class);
                 $ref = new \ReflectionMethod($instance, $method);
                 $args = $params;
                 if ($ref->getNumberOfParameters() > count($params)) {

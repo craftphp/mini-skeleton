@@ -17,6 +17,7 @@
 - **Helper**: Many utility functions for debugging, var_dump, helper function.
 - **Environment Configuration**: Read environment variables from `.env`, supported by [TinyEnv](https://github.com/datahihi1/tiny-env.git).
 - **Security**: Supports secure sessions, maintenance mode, security headers, tokens generation (easily extendable).
+- **Mailing**: Simple SMTP mail sending with configuration options.
 
 ## Basic Usage
 

@@ -1,16 +1,21 @@
 <?php
 namespace Craft\Database\QueryBuilder;
 
-class SqliteBuilder extends BaseBuilder {
+use Craft\Database\Interfaces\BuilderInterface;
+
+class SqliteBuilder extends BaseBuilder implements BuilderInterface {
     public function toSql(): string {
         $op = $this->operation ?: 'select';
         if ($op === 'select') {
             $sql = "SELECT " . implode(',', $this->columns) . " FROM \"{$this->table}\"";
             if ($this->wheres) {
-                $where = array_map(function($w) {
-                    return "\"{$w[0]}\" {$w[1]} ?";
-                }, $this->wheres);
-                $sql .= " WHERE " . implode(' AND ', $where);
+                $whereSql = '';
+                foreach ($this->wheres as $i => $w) {
+                    $col = $w[0]; $operator = $w[1]; $bool = $w[3] ?? 'AND';
+                    $prefix = $i === 0 ? '' : " {$bool} ";
+                    $whereSql .= $prefix . "\"{$col}\" {$operator} ?";
+                }
+                $sql .= " WHERE " . $whereSql;
             }
             return $sql;
         }
@@ -24,28 +29,42 @@ class SqliteBuilder extends BaseBuilder {
             $set = implode(', ', array_map(function($f) { return "`$f` = ?"; }, $fields));
             $sql = "UPDATE `{$this->table}` SET $set";
             if ($this->wheres) {
-                $where = array_map(function($w) { return "`{$w[0]}` {$w[1]} ?"; }, $this->wheres);
-                $sql .= " WHERE " . implode(' AND ', $where);
+                $whereSql = '';
+                foreach ($this->wheres as $i => $w) {
+                    $col = $w[0]; $operator = $w[1]; $bool = $w[3] ?? 'AND';
+                    $prefix = $i === 0 ? '' : " {$bool} ";
+                    $whereSql .= $prefix . "`{$col}` {$operator} ?";
+                }
+                $sql .= " WHERE " . $whereSql;
             }
             return $sql;
         }
         if ($op === 'delete') {
             $sql = "DELETE FROM `{$this->table}`";
             if ($this->wheres) {
-                $where = array_map(function($w) { return "`{$w[0]}` {$w[1]} ?"; }, $this->wheres);
-                $sql .= " WHERE " . implode(' AND ', $where);
+                $whereSql = '';
+                foreach ($this->wheres as $i => $w) {
+                    $col = $w[0]; $operator = $w[1]; $bool = $w[3] ?? 'AND';
+                    $prefix = $i === 0 ? '' : " {$bool} ";
+                    $whereSql .= $prefix . "`{$col}` {$operator} ?";
+                }
+                $sql .= " WHERE " . $whereSql;
             }
             return $sql;
         }
         return '';
     }
     
-    public function insert(array $data): self { return parent::insert($data); }
+    public function insert(array $data): BuilderInterface { return parent::insert($data); }
 
-    public function update(array $data): self { return parent::update($data); }
+    public function update(array $data): BuilderInterface { return parent::update($data); }
 
-    public function delete(): self { return parent::delete(); }
+    public function delete(): BuilderInterface { return parent::delete(); }
 
+    /**
+     * Execute the built query for SQLite
+     * @return array|int|string|null
+     */
     public function execute()
     {
         $op = $this->operation ?: 'select';

@@ -5,6 +5,7 @@ use Craft\Database\Interfaces\AdapterInterface;
 
 /**
  * #### SQLite3 Database Adapter using SQLite3 extension
+ * **Require**: the `sqlite3` PHP extension.
  */
 class Sqlite3Adapter implements AdapterInterface
 {

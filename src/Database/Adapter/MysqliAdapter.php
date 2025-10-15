@@ -2,8 +2,10 @@
 namespace Craft\Database\Adapter;
 
 use Craft\Database\Interfaces\AdapterInterface;
+
 /**
  * #### MySQLi Database Adapter using MySQLi extension
+ * **Require**: the `mysqli` PHP extension.
  */
 class MysqliAdapter implements AdapterInterface
 {

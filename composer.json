@@ -5,8 +5,7 @@
     "license": "MIT",
     "require": {
         "php": ">=7.1",
-        "datahihi1/tiny-env": "1.0.11",
-        "ext-json": "*"
+        "datahihi1/tiny-env": "^1.0"
     },
     "autoload": {
         "psr-4": {
@@ -18,7 +17,8 @@
             "src/Application/helper/source.php",
             "src/Application/helper/TokenGenerator.php",
             "src/Kit/dump/var_dump.php",
-            "src/Kit/helper/html_helper.php"
+            "src/Kit/helper/html_helper.php",
+            "src/Kit/helper/default_pages.php"
         ]
     },
     "scripts": {

@@ -34,6 +34,44 @@ class Mail
         $this->from_name  = env('MAIL_FROMNAME') ?? "No-Reply" ?? $config['fromname'];
     }
 
+        /**
+     * Send a line to the SMTP server.
+     * @param mixed $fp
+     * @param string $line
+     * @return void
+     */
+    private function sendLine($fp, string $line): void
+    {
+        fwrite($fp, $line . "\r\n");
+    }
+
+    /**
+     * Get a line from the SMTP server.
+     * @param mixed $fp
+     * @throws \RuntimeException
+     * @return bool|string
+     */
+    private function getLine($fp): string
+    {
+        $line = fgets($fp, 515);
+        if ($line === false) {
+            throw new \RuntimeException("SMTP read failed");
+        }
+        return $line;
+    }
+
+    /**
+     * Read multiline response from the SMTP server.
+     * @param mixed $fp
+     * @return void
+     */
+    private function getMultiline($fp): void
+    {
+        while (($line = fgets($fp, 515)) !== false) {
+            if (substr($line, 3, 1) !== '-') break;
+        }
+    }
+
     /**
      * Add a recipient email address.
      * 
@@ -78,10 +116,26 @@ class Mail
      */
     public function send(): bool
     {
-        // Validate required fields
-        $fp = fsockopen($this->smtp_host, $this->smtp_port, $errno, $errstr, 30);
+        // Basic config checks
+        if (empty($this->username) || empty($this->password) || empty($this->from)) {
+            throw new \RuntimeException("SMTP credentials or from address not configured.");
+        }
+
+        $errno = $errstr = null;
+        $useImplicitSsl = false;
+
+        // Prefer plain TCP + STARTTLS on configured port (usually 587)
+        $fp = @stream_socket_client("tcp://{$this->smtp_host}:{$this->smtp_port}", $errno, $errstr, 30);
+        // Fallback: try implicit SSL (port 465)
         if (!$fp) {
-            throw new \RuntimeException("SMTP connect failed: $errstr ($errno)");
+            $fp = @stream_socket_client("ssl://{$this->smtp_host}:465", $errno, $errstr, 30);
+            if ($fp) {
+                $useImplicitSsl = true;
+            }
+        }
+
+        if (!$fp) {
+            throw new \RuntimeException("SMTP connect failed: $errstr ($errno). Ensure network access to the SMTP host and that OpenSSL is enabled for the PHP SAPI used by your webserver.");
         }
 
         // Greet server
@@ -89,17 +143,20 @@ class Mail
         $this->sendLine($fp, "EHLO localhost");
         $this->getMultiline($fp);
 
-        // STARTTLS
-        $this->sendLine($fp, "STARTTLS");
-        $this->getLine($fp);
+        // If we connected implicitly with SSL we skip STARTTLS.
+        if (!$useImplicitSsl) {
+            // STARTTLS
+            $this->sendLine($fp, "STARTTLS");
+            $this->getLine($fp);
 
-        if (!stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
-            throw new \RuntimeException("Failed to enable TLS");
+            if (!stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                throw new \RuntimeException("Failed to enable TLS (ensure php_openssl is enabled)");
+            }
+
+            // Re-EHLO after TLS
+            $this->sendLine($fp, "EHLO localhost");
+            $this->getMultiline($fp);
         }
-
-        // Re-EHLO
-        $this->sendLine($fp, "EHLO localhost");
-        $this->getMultiline($fp);
 
         // AUTH LOGIN
         $this->sendLine($fp, "AUTH LOGIN");
@@ -180,40 +237,16 @@ class Mail
     }
 
     /**
-     * Send a line to the SMTP server.
-     * @param mixed $fp
-     * @param string $line
-     * @return void
+     * Render a view as the email body.
+     * 
+     * @param string $view View file path
+     * @param array $data Data to pass to the view
+     * @return self
      */
-    private function sendLine($fp, string $line): void
-    {
-        fwrite($fp, $line . "\r\n");
+    public function view(string $view, array $data = []){
+        // View::render returns the rendered string, so capture and set as body.
+        $content = \Craft\Application\View::render($view, $data);
+        return $this->body($content);
     }
 
-    /**
-     * Get a line from the SMTP server.
-     * @param mixed $fp
-     * @throws \RuntimeException
-     * @return bool|string
-     */
-    private function getLine($fp): string
-    {
-        $line = fgets($fp, 515);
-        if ($line === false) {
-            throw new \RuntimeException("SMTP read failed");
-        }
-        return $line;
-    }
-
-    /**
-     * Read multiline response from the SMTP server.
-     * @param mixed $fp
-     * @return void
-     */
-    private function getMultiline($fp): void
-    {
-        while (($line = fgets($fp, 515)) !== false) {
-            if (substr($line, 3, 1) !== '-') break;
-        }
-    }
 }

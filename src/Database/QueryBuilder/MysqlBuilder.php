@@ -7,8 +7,13 @@ class MysqlBuilder extends BaseBuilder {
         if ($op === 'select') {
             $sql = "SELECT " . implode(',', $this->columns) . " FROM `{$this->table}`";
             if ($this->wheres) {
-                $where = array_map(function($w) { return "`{$w[0]}` {$w[1]} ?"; }, $this->wheres);
-                $sql .= " WHERE " . implode(' AND ', $where);
+                $whereSql = '';
+                foreach ($this->wheres as $i => $w) {
+                    $col = $w[0]; $operator = $w[1]; $bool = $w[3] ?? 'AND';
+                    $prefix = $i === 0 ? '' : " {$bool} ";
+                    $whereSql .= $prefix . "`{$col}` {$operator} ?";
+                }
+                $sql .= " WHERE " . $whereSql;
             }
             return $sql;
         }
@@ -22,22 +27,36 @@ class MysqlBuilder extends BaseBuilder {
             $set = implode(', ', array_map(function($f) { return "`$f` = ?"; }, $fields));
             $sql = "UPDATE `{$this->table}` SET $set";
             if ($this->wheres) {
-                $where = array_map(function($w) { return "`{$w[0]}` {$w[1]} ?"; }, $this->wheres);
-                $sql .= " WHERE " . implode(' AND ', $where);
+                $whereSql = '';
+                foreach ($this->wheres as $i => $w) {
+                    $col = $w[0]; $operator = $w[1]; $bool = $w[3] ?? 'AND';
+                    $prefix = $i === 0 ? '' : " {$bool} ";
+                    $whereSql .= $prefix . "`{$col}` {$operator} ?";
+                }
+                $sql .= " WHERE " . $whereSql;
             }
             return $sql;
         }
         if ($op === 'delete') {
             $sql = "DELETE FROM `{$this->table}`";
             if ($this->wheres) {
-                $where = array_map(function($w) { return "`{$w[0]}` {$w[1]} ?"; }, $this->wheres);
-                $sql .= " WHERE " . implode(' AND ', $where);
+                $whereSql = '';
+                foreach ($this->wheres as $i => $w) {
+                    $col = $w[0]; $operator = $w[1]; $bool = $w[3] ?? 'AND';
+                    $prefix = $i === 0 ? '' : " {$bool} ";
+                    $whereSql .= $prefix . "`{$col}` {$operator} ?";
+                }
+                $sql .= " WHERE " . $whereSql;
             }
             return $sql;
         }
         return '';
     }
 
+    /**
+     * Execute the built query for MySQL
+     * @return array|int|string|null
+     */
     public function execute()
     {
         $op = $this->operation ?: 'select';
