@@ -109,7 +109,7 @@ jobs:
         require 'vendor/autoload.php';
         if (class_exists('Craft\\Application\\App')) {
           echo '✅ CraftPHP Application class exists\n';
-          echo 'CraftPHP version: ' . \Craft\Application\App::VERSION . '\n';
+          echo 'CraftPHP version: ' . \Craft\Application\App::version . '\n';
         } else {
           echo '❌ CraftPHP Application class does not exist\n';
           exit(1);
