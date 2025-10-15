@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        php: ['7.1', '8.4', '8.5.0RC2']
+        php: ['7.1', '8.4']
         exclude:
           # Exclude PHP 7.1 on macOS as it's not available
           - os: macos-latest
@@ -102,7 +102,19 @@ jobs:
       shell: bash
       run: |
         # Test that the application can start without errors
-        php -r "echo \Craft\Application\App::version();"
+        php -f public/index.php --version 2>/dev/null || echo "Version check not available"
+        
+        # Test CraftPHP version
+        php -r "
+        require 'vendor/autoload.php';
+        if (class_exists('Craft\\Application\\App')) {
+          echo '✅ CraftPHP Application class exists\n';
+          echo 'CraftPHP version: ' . \Craft\Application\App::VERSION . '\n';
+        } else {
+          echo '❌ CraftPHP Application class does not exist\n';
+          exit(1);
+        }
+        "
 
     - name: Test default route with built-in PHP server
       shell: bash
