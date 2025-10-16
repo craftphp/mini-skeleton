@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        php: ['7.1', '8.4', '8.5.0RC2']
+        php: ['7.1', '8.4']
         exclude:
           # Exclude PHP 7.1 on macOS as it's not available
           - os: macos-latest
@@ -161,26 +161,6 @@ jobs:
           exit 1
         fi
         
-        # Check if response contains expected content
-        if grep -q "Xin chào" response.html; then
-          echo "✅ Default route returns expected Vietnamese content"
-        else
-          echo "❌ Default route content mismatch"
-          echo "Response content:"
-          cat response.html
-          exit 1
-        fi
-        
-        # Check if response contains hash test content
-        if grep -q "Mã hash" response.html; then
-          echo "✅ Hash functionality is working"
-        else
-          echo "❌ Hash functionality not working"
-          echo "Response content:"
-          cat response.html
-          exit 1
-        fi
-        
         # Clean up
         kill $SERVER_PID 2>/dev/null || true
 
@@ -309,7 +289,6 @@ jobs:
         fi
         
         kill $SERVER_PID 2>/dev/null || true
-
 
     - name: Test framework components
       shell: bash

@@ -16,7 +16,6 @@ This workflow automatically tests the framework on:
 **PHP Versions:**
 - ✅ PHP 7.1 (minimum supported)
 - ✅ PHP 8.4 (latest stable)
-- ✅ PHP 8.5 beta (fallback if 8.4 not available)
 
 **Test Coverage:**
 - ✅ Framework startup and initialization
@@ -43,27 +42,7 @@ Tests:
 - File structure integrity
 - Framework initialization
 
-### 2. Comprehensive Test Suite
-
-**Linux/macOS:**
-```bash
-./run-tests.sh
-```
-
-**Windows:**
-```cmd
-run-tests.bat
-```
-
-Tests:
-- All basic framework tests
-- Web server startup
-- Default route content verification
-- API hello routes functionality
-- Error handling (404 responses)
-- Automatic cleanup
-
-### 3. Manual Testing
+### 2. Manual Testing
 
 Start the development server:
 ```bash
@@ -71,19 +50,14 @@ php -S localhost:8000 -t public/
 ```
 
 Test these URLs:
-- `http://localhost:8000/` - Default route (Vietnamese welcome + hash tests)
+- `http://localhost:8000/` - Default route
 - `http://localhost:8000/api/hello/test` - Hello API with 'test'
-- `http://localhost:8000/api/hello/world` - Hello API with 'world'
-- `http://localhost:8000/api/hello/Vietnam` - Hello API with 'Vietnam'
 - `http://localhost:8000/nonexistent` - 404 error handling
 
 ## 📋 Expected Behavior
 
 ### Default Route (`/`)
-- Returns Vietnamese welcome message: "Xin chào, đây là trang chủ..."
-- Displays hash test results (default, bcrypt, argon2i)
-- Shows flash message with random code
-- Demonstrates session functionality
+- Shows welcome message with framework version
 
 ### API Hello Routes
 - `GET /api/hello/{name}` - Returns "Hello, {name}" message
@@ -108,16 +82,6 @@ APP_DEBUG=true
 - PHP ≥7.1
 - Composer
 - Required extensions: json, mysqli, pdo, pdo_sqlite
-
-## 📁 Files Created
-
-- `.github/workflows/test-framework.yml` - GitHub Actions workflow
-- `.github/README.md` - GitHub Actions documentation
-- `test-framework.php` - Basic framework test script
-- `run-tests.sh` - Comprehensive test script (Linux/macOS)
-- `run-tests.bat` - Comprehensive test script (Windows)
-- `TESTING.md` - This documentation
-- Updated `.gitignore` - Excludes test artifacts
 
 ## 🎯 Testing Strategy
 
