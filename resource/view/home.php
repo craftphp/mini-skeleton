@@ -1,12 +1,44 @@
 <?php
 function formatBytes($bytes, $precision = 2) {
+    // Support numeric bytes and shorthand strings like "128M", "1G", "-1" (unlimited)
     $units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
-    $bytes = max($bytes, 0);
-    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+    // If ini value "-1" means unlimited
+    if ($bytes === -1 || $bytes === "-1") {
+        return 'Unlimited';
+    }
+
+    // Convert shorthand string (e.g. "128M") to bytes
+    if (is_string($bytes)) {
+        $val = trim($bytes);
+        // If it ends with a letter unit
+        $last = strtoupper(substr($val, -1));
+        $number = floatval($val);
+
+        switch ($last) {
+            case 'P': $number *= pow(1024, 5); break;
+            case 'T': $number *= pow(1024, 4); break;
+            case 'G': $number *= pow(1024, 3); break;
+            case 'M': $number *= pow(1024, 2); break;
+            case 'K': $number *= pow(1024, 1); break;
+            default:
+                // If last char is not a unit, try to parse plain number
+                $number = floatval($val);
+        }
+
+        $bytes = $number;
+    }
+
+    $bytes = max((float)$bytes, 0.0);
+
+    if ($bytes == 0) {
+        return '0 B';
+    }
+
+    $pow = floor(log($bytes) / log(1024));
     $pow = min($pow, count($units) - 1);
 
-    $bytes /= (1 << (10 * $pow));
+    $bytes /= pow(1024, $pow);
 
     return round($bytes, $precision) . ' ' . $units[$pow];
 }
@@ -101,7 +133,7 @@ $runtime = $end - CRAFT_RUN;
         <div class="item"><div class="k">App timezone</div><div id="app-timezone" class="v"><?=env('APP_TIMEZONE')?></div></div>
         <div class="item"><div class="k">Debug</div><div id="app-debug" class="v"><?=env('APP_DEBUG') ? 'true':'false' ?></div></div>
         <div class="item"><div class="k">Run time</div><div id="craft-run" class="v"><?=round($runtime, 4)?> secs.</div></div>
-        <div class="item"><div class="k">Memory usage</div><div id="mem-used" class="v"><?=formatBytes(memory_get_usage())?></div></div>
+        <div class="item"><div class="k">Memory usage</div><div id="mem-used" class="v"><?=formatBytes(memory_get_usage()).'/'. formatBytes(ini_get('memory_limit'))?> (Peak: <?=formatBytes(memory_get_peak_usage())?>)</div></div>
         <div class="item"><div class="k">Framework version</div><div id="fw-version" class="v"><?=\Craft\Application\App::version?></div></div>
       </div>
       <div class="footer">
